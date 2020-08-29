@@ -4,6 +4,7 @@
 # snippet-keyword:[Amazon Simple Storage Service]
 # snippet-keyword:[put_object method]
 # snippet-keyword:[Ruby]
+# snippet-sourcesyntax:[ruby]
 # snippet-service:[s3]
 # snippet-keyword:[Code Sample]
 # snippet-sourcetype:[full-example]
@@ -31,7 +32,6 @@ end
 
 encoded_string = ARGV[0]
 key = encoded_string.unpack("m*")[0]
-md5 = Digest::MD5.digest(key)
 
 bucket = 'my_bucket'
 item = 'my_item'
@@ -40,7 +40,13 @@ item = 'my_item'
 contents = File.read(item)
 
 # Create S3 encryption client
-client = Aws::S3::Encryption::Client.new(region: 'us-west-2', encryption_key: key)
+client = Aws::S3::EncryptionV2::Client.new(
+  region: 'us-west-2',
+  encryption_key: key,
+  key_wrap_schema: :aes_gcm, # the key_wrap_schema must be aes_gcm for symmetric keys
+  content_encryption_schema: :aes_gcm_no_padding,
+  security_profile: :v2 # use :v2_and_legacy to allow reading/decrypting objects encrypted by the V1 encryption client
+)
 
 # Add encrypted item to bucket
 client.put_object(

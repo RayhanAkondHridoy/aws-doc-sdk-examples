@@ -1,81 +1,79 @@
- 
-//snippet-sourcedescription:[get_object.cpp demonstrates how to retrieve an object from an Amazon S3 bucket.]
-//snippet-keyword:[C++]
-//snippet-keyword:[Code Sample]
-//snippet-keyword:[Amazon S3]
-//snippet-service:[s3]
-//snippet-sourcetype:[full-example]
-//snippet-sourcedate:[]
-//snippet-sourceauthor:[AWS]
+// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX - License - Identifier: Apache - 2.0 
 
-
-/*
-   Copyright 2010-2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
-
-   This file is licensed under the Apache License, Version 2.0 (the "License").
-   You may not use this file except in compliance with the License. A copy of
-   the License is located at
-
-    http://aws.amazon.com/apache2.0/
-
-   This file is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-   CONDITIONS OF ANY KIND, either express or implied. See the License for the
-   specific language governing permissions and limitations under the License.
-*/
 //snippet-start:[s3.cpp.get_object.inc]
+#include <iostream>
 #include <aws/core/Aws.h>
 #include <aws/s3/S3Client.h>
 #include <aws/s3/model/GetObjectRequest.h>
 #include <fstream>
+#include <awsdoc/s3/s3_examples.h>
 //snippet-end:[s3.cpp.get_object.inc]
 
-/**
- * Get an object from an Amazon S3 bucket.
- */
-int main(int argc, char** argv)
-{
-    if (argc < 3)
-    {
-        std::cout << std::endl <<
-            "To run this example, supply the name of an S3 bucket and object to"
-            << std::endl << "download from it." << std::endl << std::endl <<
-            "Ex: get_object <bucketname> <filename>\n" << std::endl;
-        exit(1);
-    }
+/* ////////////////////////////////////////////////////////////////////////////
+ * Purpose: Prints the beginning contents of a text file in a 
+ * bucket in Amazon S3.
+ *
+ * Prerequisites: The bucket that contains the text file.
+ *
+ * Inputs:
+ * - objectKey: The name of the text file.
+ * - fromBucket: The name of the bucket that contains the text file.
+ *
+ * Outputs: true if the contents of the text file were retrieved; 
+ * otherwise, false.
+ * ///////////////////////////////////////////////////////////////////////// */
 
+ // snippet-start:[s3.cpp.get_object.code]
+bool AwsDoc::S3::GetObject(const Aws::String& objectKey,
+    const Aws::String& fromBucket)
+{
+    Aws::S3::S3Client s3_client;
+    Aws::S3::Model::GetObjectRequest object_request;
+    object_request.SetBucket(fromBucket);
+    object_request.SetKey(objectKey);
+
+    Aws::S3::Model::GetObjectOutcome get_object_outcome = 
+        s3_client.GetObject(object_request);
+
+    if (get_object_outcome.IsSuccess())
+    {
+        auto& retrieved_file = get_object_outcome.GetResultWithOwnership().
+            GetBody();
+
+        // Print a beginning portion of the text file.
+        std::cout << "Beginning of file contents:\n";
+        char file_data[255] = { 0 };
+        retrieved_file.getline(file_data, 254);
+        std::cout << file_data << std::endl;
+
+        return true;
+    }
+    else
+    {
+        auto err = get_object_outcome.GetError();
+        std::cout << "Error: GetObject: " <<
+            err.GetExceptionName() << ": " << err.GetMessage() << std::endl;
+
+        return false;
+    }
+}
+
+int main()
+{
     Aws::SDKOptions options;
     Aws::InitAPI(options);
     {
-        const Aws::String bucket_name = argv[1];
-        const Aws::String key_name = argv[2];
+        const Aws::String bucket_name = "my-bucket";
+        const Aws::String object_name = "my-file.txt";
 
-        std::cout << "Downloading " << key_name << " from S3 bucket: " <<
-            bucket_name << std::endl;
-
-        // snippet-start:[s3.cpp.get_object.code]
-        Aws::S3::S3Client s3_client;
-
-        Aws::S3::Model::GetObjectRequest object_request;
-        object_request.WithBucket(bucket_name).WithKey(key_name);
-
-        auto get_object_outcome = s3_client.GetObject(object_request);
-
-        if (get_object_outcome.IsSuccess())
+        if (!AwsDoc::S3::GetObject(object_name, bucket_name))
         {
-            Aws::OFStream local_file;
-            local_file.open(key_name.c_str(), std::ios::out | std::ios::binary);
-            local_file << get_object_outcome.GetResult().GetBody().rdbuf();
-            std::cout << "Done!" << std::endl;
+            return 1;
         }
-        else
-        {
-            std::cout << "GetObject error: " <<
-                get_object_outcome.GetError().GetExceptionName() << " " <<
-                get_object_outcome.GetError().GetMessage() << std::endl;
-        }
-        // snippet-end:[s3.cpp.get_object.code]
     }
-
     Aws::ShutdownAPI(options);
-}
 
+    return 0;
+}
+// snippet-end:[s3.cpp.get_object.code]

@@ -1,81 +1,88 @@
- 
-//snippet-sourcedescription:[put_object_buffer.cpp demonstrates how to put an object into an Amazon S3 bucket using a buffered I/O stream.]
-//snippet-keyword:[C++]
-//snippet-keyword:[Code Sample]
-//snippet-keyword:[Amazon S3]
-//snippet-service:[s3]
-//snippet-sourcetype:[full-example]
-//snippet-sourcedate:[]
-//snippet-sourceauthor:[tapasweni-pathak]
+// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX - License - Identifier: Apache - 2.0
 
+/* ////////////////////////////////////////////////////////////////////////////
+ * Purpose: Adds content to an object and then adds the object to a bucket 
+ * in Amazon S3.
+ *
+ * Prerequisites: An Amazon S3 bucket and content to be added to the bucket 
+ * as an object.
+ *
+ * Inputs:
+ * - bucketName: The name of the bucket.
+ * - objectName: The name of the object to be added to the bucket.
+ * - objectContent: The content to be added to the object.
+ * - region: The AWS Region for the bucket.
+ *
+ * Outputs: true if the object was added to the bucket; otherwise, false.
+ * ///////////////////////////////////////////////////////////////////////// */
 
-/*
-   Copyright 2010-2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
-   This file is licensed under the Apache License, Version 2.0 (the "License").
-   You may not use this file except in compliance with the License. A copy of
-   the License is located at
-    http://aws.amazon.com/apache2.0/
-   This file is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-   CONDITIONS OF ANY KIND, either express or implied. See the License for the
-   specific language governing permissions and limitations under the License.
-*/
+// snippet-start:[s3.cpp.objects.put_string_into_object_bucket]
 #include <aws/core/Aws.h>
 #include <aws/s3/S3Client.h>
 #include <aws/s3/model/PutObjectRequest.h>
 #include <iostream>
 #include <fstream>
+#include <awsdoc/s3/s3_examples.h>
 
-/**
- * Put an object from an Amazon S3 bucket.
- */
-int main(int argc, char** argv)
+bool AwsDoc::S3::PutObjectBuffer(const Aws::String& bucketName,
+    const Aws::String& objectName,
+    const std::string& objectContent,
+    const Aws::String& region)
 {
-    if (argc < 4)
+    Aws::Client::ClientConfiguration config;
+    
+    if (!region.empty())
     {
-        std::cout << std::endl <<
-            "To run this example, supply the name of an S3 bucket, destination key, and file to upload."
-            << std::endl << std::endl <<
-            "Ex: put_object <bucketname> <keyname> <optional:region>" << std::endl;
-        exit(1);
+        config.region = region;
     }
 
+    Aws::S3::S3Client s3_client(config);
+
+    Aws::S3::Model::PutObjectRequest request;
+    request.SetBucket(bucketName);
+    request.SetKey(objectName);
+
+    const std::shared_ptr<Aws::IOStream> input_data =
+        Aws::MakeShared<Aws::StringStream>("");
+    *input_data << objectContent.c_str();
+
+    request.SetBody(input_data);
+
+    Aws::S3::Model::PutObjectOutcome outcome = s3_client.PutObject(request);
+
+    if (!outcome.IsSuccess()) {
+        std::cout << "Error: PutObjectBuffer: " << 
+            outcome.GetError().GetMessage() << std::endl;
+
+        return false;
+    }
+    else
+    {
+        std::cout << "Success: Object '" << objectName << "' with content '"
+            << objectContent << "' uploaded to bucket '" << bucketName << "'.";
+
+        return true;
+    }
+}
+
+int main()
+{
     Aws::SDKOptions options;
     Aws::InitAPI(options);
     {
-        const Aws::String bucket_name = argv[1];
-        const Aws::String key_name = argv[2];
-        const Aws::String region(argc > 4 ? argv[4] : "");
+        const Aws::String bucket_name = "my-bucket";
+        const Aws::String object_name = "my-file.txt";
+        const std::string object_content = "This is my sample text content.";
+        const Aws::String region = "us-east-1";
 
-        std::cout << "Uploading to S3 bucket " <<
-            bucket_name << " at key " << key_name << std::endl;
-
-        Aws::Client::ClientConfiguration clientConfig;
-        if (!region.empty())
-            clientConfig.region = region;
-        Aws::S3::S3Client s3_client(clientConfig);
-
-        Aws::S3::Model::PutObjectRequest object_request;
-        object_request.WithBucket(bucket_name).WithKey(key_name);
-
-        // Binary files must also have the std::ios_base::bin flag or'ed in
-
-        std::shared_ptr<Aws::IOStream> objectStream = Aws::MakeShared<Aws::StringStream>("write this.");
-
-        *objectStream << "write this";
-        object_request.SetBody(objectStream);
-
-        auto put_object_outcome = s3_client.PutObject(object_request);
-
-        if (put_object_outcome.IsSuccess())
+        if (!AwsDoc::S3::PutObjectBuffer(bucket_name, object_name, object_content, region)) 
         {
-            std::cout << "Done!" << std::endl;
-        }
-        else
-        {
-            std::cout << "PutObject error: " <<
-                put_object_outcome.GetError().GetExceptionName() << " " <<
-                put_object_outcome.GetError().GetMessage() << std::endl;
+            return 1;
         }
     }
     Aws::ShutdownAPI(options);
+
+    return 0;
 }
+// snippet-end:[s3.cpp.objects.put_string_into_object_bucket]

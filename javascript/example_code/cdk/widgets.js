@@ -4,15 +4,16 @@
 //snippet-comment:[and widget_service.ts in the lib/ directory.]
 //snippet-sourceauthor:[Doug-AWS]
 //snippet-sourcedescription:[Lambda function to handle GET, POST, and DELETE.]
-//snippet-keyword:[CDK V0.21.0]
+//snippet-keyword:[CDK V0.24.1]
 //snippet-keyword:[S3.deleteObject function]
 //snippet-keyword:[S3.getObject function]
 //snippet-keyword:[S3.listObjectsV2 function]
 //snippet-keyword:[S3.putObject function]
 //snippet-keyword:[JavaScript]
+//snippet-sourcesyntax:[javascript]
 //snippet-service:[cdk]
 //snippet-sourcetype:[full-example]
-//snippet-sourcedate:[2019-1-9]
+//snippet-sourcedate:[2019-2-8]
 // Copyright 2010-2019 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 //
 // This file is licensed under the Apache License, Version 2.0 (the "License").
@@ -33,6 +34,16 @@ const S3 = new AWS.S3();
 const bucketName = process.env.BUCKET;
 
 //snippet-start:[cdk.typescript.widgets.exports_main]
+/* 
+This code uses callbacks to handle asynchronous function responses.
+It currently demonstrates using an async-await pattern. 
+AWS supports both the async-await and promises patterns.
+For more information, see the following: 
+https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/async_function
+https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Using_promises
+https://docs.aws.amazon.com/sdk-for-javascript/v2/developer-guide/calling-services-asynchronously.html
+https://docs.aws.amazon.com/lambda/latest/dg/nodejs-prog-model-handler.html 
+*/
 exports.main = async function(event, context) {
   try {
     var method = event.httpMethod;
